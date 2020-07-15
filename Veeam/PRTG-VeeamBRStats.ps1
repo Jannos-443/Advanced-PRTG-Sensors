@@ -113,7 +113,9 @@ if ($PSRemote) {
 }
 #endregion
 
-
+#region: Query Version
+$VbrVersion = (Get-PSSnapin VeeamPSSnapin).Version
+#endregions
 
 #region: Functions
 <#
@@ -541,7 +543,12 @@ if ($CloudRepos) {
             foreach ($CloudProviderRessource in $CloudProvider.Resources){
                 $CloudRepo = $CloudRepos | Where-Object {($_.CloudProvider.HostName -eq $CloudProvider.DNSName) -and ($_.Name -eq $CloudProviderRessource.RepositoryName)}
                 $totalSpaceGb = [Math]::Round([Decimal]$CloudProviderRessource.RepositoryAllocatedSpace/1KB,2)
-                $totalUsedGb = [Math]::Round([Decimal]([Veeam.Backup.Core.CBackupRepository]::GetRepositoryBackupsSize($CloudRepo.Id.Guid))/1GB,2)
+                if ($VbrVersion.Major -ge 10) {
+                    $totalUsedGb = [Math]::Round([Decimal]([Veeam.Backup.Core.CBackupRepository]::GetRepositoryBackupsSize($CloudRepo.Id.Guid))/1GB,2)
+                }
+                else {
+                    $totalUsedGb = [Math]::Round([Decimal]([Veeam.Backup.Core.CBackupRepository]::GetRepositoryStoragesSize($CloudRepo.Id.Guid))/1GB,2)
+                }
                 $totalFreeGb = [Math]::Round($totalSpaceGb - $totalUsedGb,2)
                 $freePercentage = [Math]::Round(($totalFreeGb/$totalSpaceGb)*100)
                 If ($freePercentage -lt $repoCritical) {$Status = "Critical"}
